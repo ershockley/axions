@@ -19,7 +19,6 @@ datadir = '/home/ershockley/analysis/axions/data'
 
 sciencerun = "SR1"
 
-
 def make_limit(axion_type_str, mass, file_counter):
     if axion_type_str == 'solar_axion':
         axionobject = SolarAxion
