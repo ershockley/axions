@@ -3,6 +3,7 @@ from scipy.interpolate import interp1d
 import blueice as bi
 import pandas as pd
 import matplotlib.pyplot as plt
+from bbfsource import BBFSource
 
 plt.rcParams['figure.figsize'] = (8.0, 6.0)
 
@@ -24,6 +25,9 @@ SR1 = {'livetime_days' : 246.7,
 
 sciencerun = SR1
 
+er_ignore_parameters = ['nr_gamma', 'nr_alpha', 'nr_lambda', 'nr_ee', 'wimp_mass', 'nr_eta', 'efficiency']
+
+
 class Axion:
     """ Base class for axion analysis """
     g_scale = 'Not Implemented'
@@ -42,32 +46,29 @@ class Axion:
     def build_config(self, **kwargs):
         # setup config for blueice/laidbax. No axion info yet, that comes in inherited classes
         from laidbax.base_model import config
+
         myconfig = config.copy()
 
         myconfig['force_recalculation'] = True
         myconfig['never_save_to_cache'] = True
         myconfig['data_dirs'] = ['.', '/home/ershockley/analysis/axions/data']
 
-        myconfig['analysis_space'] = (('cs1', tuple(np.linspace(3, 70, 20))),
-                                      #('cs2', tuple(np.linspace(200, 5000, 100))))
-                                      ('cs2', tuple(np.linspace(1500, 15000, 100))))
-        #myconfig['analysis_space'] = (('cs1', tuple(np.linspace(3, 70, 68))),
-        #                              ('cs2', tuple(np.logspace(*np.log10([50, 8000]), num=71)))),
-
-        # this was changed in laidbax, but model doesn't match data with new change
-        # TODO need to figure this out
-        myconfig['s2_gain'] = 30 * (1 + 0.0267)/1.15
+        myconfig['analysis_space'] = (('cs1', tuple(np.linspace(0, 100, 101))),
+                                      ('cs2_bottom', tuple(np.linspace(500, 8000, 126))))
 
         myconfig['livetime_days'] = sciencerun['livetime_days']
         myconfig['fiducial_mass'] = sciencerun['fiducial_mass']
+        myconfig['default_source_class'] = BBFSource
 
-        # consider only ER background
-        myconfig['sources'] = [source for source in myconfig['sources'] if source['name'] in ['er_bg', 'erbkg', 'er']]
-        myconfig['sources'][0]['name'] = 'erbkg'
-
-        for rm_key in ['events_per_day', 'rate_multiplier']:
-            if rm_key in myconfig:
-                myconfig.pop(rm_key)
+        er_background = {'color': 'blue',
+                         'jsonname': '/home/ershockley/er_cs1cs2.json',
+                         'extra_dont_hash_settings': er_ignore_parameters,
+                         'label': 'ER',
+                         'n_events_for_pdf': 20000000.0,
+                         'name': 'er',
+                         'recoil_type': 'er',
+                         'in_events_per_bin': True}
+        myconfig['sources'] = er_background
 
         return myconfig
 
@@ -181,21 +182,13 @@ class SolarAxion(Axion):
     def build_config(self, **kwargs):
         # add ALP source to baseclass config
         solar_axion = {'color': 'red',
-                       'energy_distribution': 'solar_axion.csv',
-                       'extra_dont_hash_settings': ['leff', 'qy', 'nr_photon_yield_field_quenching', 'nr_poly_order',
-                                               'p_nr_electron_fluctuation', 'nr_p_electron_a', 'nr_p_electron_b',
-                                               'nr_p_detectable_a', 'nr_p_detectable_b', 'nr_p_electron_0',
-                                               'nr_p_electron_1', 'nr_p_electron_2', 'nr_p_electron_3',
-                                               'nr_p_electron_4', 'nr_p_electron_5', 'nr_p_electron_6',
-                                               'nr_p_electron_7', 'nr_p_electron_8', 'nr_p_electron_9',
-                                               'nr_p_detectable_0', 'nr_p_detectable_1', 'nr_p_detectable_2',
-                                               'nr_p_detectable_3', 'nr_p_detectable_4', 'nr_p_detectable_5',
-                                               'nr_p_detectable_6', 'nr_p_detectable_7', 'nr_p_detectable_8',
-                                               'nr_p_detectable_9'],
-                       'label': 'Solar axion %0.1f keV' % self.mass,
+                       'jsonname': '/home/ershockley/solaraxion_cs1cs2.json',
+                       'extra_dont_hash_settings': er_ignore_parameters,
+                       'label': 'solar axion',
                        'n_events_for_pdf': 20000000.0,
                        'name': 'solar_axion',
-                       'recoil_type': 'er'}
+                       'recoil_type': 'er',
+                       'in_events_per_bin': True}
 
         myconfig = super().build_config()
         myconfig['sources'].append(solar_axion)
@@ -216,14 +209,3 @@ class SolarAxion(Axion):
 
         self.data['energy_spectrum'] = self.dRdE(self.data['E'], m=m, g=g)
         self.data.to_csv(self.config['data_dirs'][0] + '/solar_axion.csv', columns=("E", "energy_spectrum"))
-
-
-
-
-
-
-
-
-
-
-
