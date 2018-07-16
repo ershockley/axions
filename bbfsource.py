@@ -40,6 +40,8 @@ class BBFSource(bi.HistogramPdfSource):
                 assert len(seen_bin_edges) == len(expected_bin_edges)
             except AssertionError:
                 print("Axis %s bin_edges don't match expected from config" % h.axis_names[a_i])
+                print("Expect %d bin_edges from config" % len(expected_bin_edges))
+                print("See %d bin_edges from json" % len(seen_bin_edges))
                 print(expected_bin_edges)
                 print(seen_bin_edges)
                 raise

@@ -17,7 +17,7 @@ sbatch_template = """#!/bin/bash
 
 source activate {env}
 
-export PYTHONPATH="/home/ershockley/software:$PYTHONPATH"
+#export PYTHONPATH="/home/ershockley/software:$PYTHONPATH"
 
 {job}
 """
@@ -35,18 +35,21 @@ def submit_job(jobstring, log=None, partition='xenon1t', qos='xenon1t', account=
     if env == "None":
         re.sub("source activate None", "", sbatch_script)
 
-    if dry_run:
-        print(sbatch_script)
-        return
-
     _, file = tempfile.mkstemp(suffix='.sbatch')
+    
     with open(file, 'w') as f:
         f.write(sbatch_script)
+
+    if dry_run:
+        print("sbatch script at %s:" % file)
+        print(sbatch_script)
+        return
 
     command = "sbatch %s" % file
     if not delete_file:
         print("Executing: %s" % command )
     subprocess.Popen(shlex.split(command)).communicate()
+    #return subprocess.check_output(command, stderr=subprocess.STDOUT)
 
     if delete_file:
         os.remove(file)
